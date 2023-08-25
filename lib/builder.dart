@@ -35,26 +35,9 @@ class YamlBasedBuilder implements Builder {
     final currentAsset = buildStep.inputId;
     final contents = await buildStep.readAsString(currentAsset);
     final currentMap = loadYaml(contents) as YamlMap;
-    final currentKeys = currentMap.allKeys;
 
     final all = await buildStep.findAssets(Glob('**.i18n.yaml')).toList()
       ..remove(currentAsset);
-
-    for (final a in all) {
-      var contents = await buildStep.readAsString(a);
-      final map = loadYaml(contents) as YamlMap;
-      final keys = map.allKeys;
-
-      if (currentKeys.length != keys.length) {
-        throw 'all language YAMLs must have equal length';
-      }
-
-      for (var i = 0; i < currentKeys.length; i++) {
-        if (currentKeys[i] != keys[i]) {
-          throw 'different keys were found for the same location ${keys[i]} [$a]';
-        }
-      }
-    }
 
     // Create a new target [AssetId] based on the old one.
 
