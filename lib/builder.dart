@@ -34,7 +34,7 @@ class YamlBasedBuilder implements Builder {
     // Each [buildStep] has a single input.
     final currentAsset = buildStep.inputId;
     final contents = await buildStep.readAsString(currentAsset);
-    final currentMap = loadYaml(contents) as YamlMap;
+    loadYaml(contents) as YamlMap;
 
     final all = await buildStep.findAssets(Glob('**.i18n.yaml')).toList()
       ..remove(currentAsset);
