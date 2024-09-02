@@ -31,27 +31,40 @@ extension YamlMapX on YamlMap {
 class YamlBasedBuilder implements Builder {
   @override
   Future build(BuildStep buildStep) async {
-    // Each [buildStep] has a single input.
-    final currentAsset = buildStep.inputId;
-    final contents = await buildStep.readAsString(currentAsset);
+    final currentFile = buildStep.inputId;
+    final contents = await buildStep.readAsString(currentFile);
     loadYaml(contents) as YamlMap;
 
-    final all = await buildStep.findAssets(Glob('**.i18n.yaml')).toList()
-      ..remove(currentAsset);
+    final pattern = Glob('**.i18n.yaml');
+    final allFiles = await buildStep.findAssets(pattern).toList();
+    final currentFileName = currentFile.pathSegments.last.replaceAll(
+      '.i18n.yaml',
+      '',
+    );
+    final defaultFile = allFiles.firstWhere(
+      (e) {
+        final name = e.uri.pathSegments.last.replaceAll('.i18n.yaml', '');
+        return !name.contains('_') && currentFileName.startsWith(name);
+      },
+    );
 
-    // Create a new target [AssetId] based on the old one.
+    if (currentFile != defaultFile) {
+      final defaultFileContents = await buildStep.readAsString(defaultFile);
+      loadYaml(defaultFileContents) as YamlMap;
+    }
 
-    var objectName = generateMessageObjectName(currentAsset.pathSegments.last);
+    final objectName = generateMessageObjectName(currentFile.pathSegments.last);
     var dartContent = generateDartContentFromYaml(objectName, contents);
 
     try {
       dartContent = DartFormatter().format(dartContent);
     } on FormatterException {
       log.warning(
-          'Could not format generated output, it might contain errors.');
+        'Could not format generated output, it might contain errors.',
+      );
     }
 
-    var copy = currentAsset.changeExtension('.dart');
+    var copy = currentFile.changeExtension('.dart');
 
     // Write out the new asset.
     await buildStep.writeAsString(copy, dartContent);
